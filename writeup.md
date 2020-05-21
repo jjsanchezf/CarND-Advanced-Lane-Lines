@@ -32,7 +32,7 @@ The goals / steps of this project are the following:
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the IPython notebook "Camera_Calibration.ipynb".  
+The code for this step is contained in the IPython notebook "Camera_Calibration.ipynb"(./Camera_Calibration.ipynb).  
 
 First of all, the number of inside corners in any given row `nx` and colum `ny` are declared. Based on these dimensions, the array `object_point_grid` is generated, such array will be the (x, y, z) coordinates of the chessboard corners in the world. It's assumed that all points lie on the same plan on the z direction,thus fixing them at `z=0`. 2 empty buffer arrays, `objpoints` and `imgpoints` are also initialized. these arrays will contain the corner coordinates of the chessboards (`objpoints`), and the actual possitions of such point on the images (`imgpoints`).
 
