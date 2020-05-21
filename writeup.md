@@ -44,7 +44,7 @@ Finally, the obtained coefficients are used to obtain an undistorted images usin
 
 ![alt text][image1]
 
-No "Chessboar Corners" where found on the following images:
+No "Chessboard Corners" where found on the following images:
 
 ![alt text][image7]
 
@@ -52,9 +52,9 @@ No "Chessboar Corners" where found on the following images:
 
 #### 1. Provide an example of a distortion-corrected image.
 
-The code for this step is contained in the provided IPython notebook.
+The code for this step is contained in the IPython notebook ["Image_Processing.ipynb"](./Image_Processing.ipynb).  
 
-To display a distortion corrected test image, I simply read the first of the test images and applied the same `cv2.undistort()` call to this image. I used the same camera matrix and distortion coefficients because this is presumably the same camera being used here, and will account for its particular distortions.
+To display a distortion corrected test image the process is simple. The method `cv2.undistort()` is applied to the test images provided using the camera matrix and distortion coefficients obtained for the previous rubric point. It is assumed that the same camera was used to take the pictures for both points 
 
 This resulted in the following image transformation:
 
