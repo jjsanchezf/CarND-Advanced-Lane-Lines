@@ -15,11 +15,15 @@ The goals / steps of this project are the following:
 
 [image1]: ./Project_Output/undistort_output.png "Undistorted"
 [image2]: ./Project_Output/test-image-undistorted.png "Road Transformed"
-[image3]: ./Project_Output/binary-example.png "Binary Example"
-[image4]: ./Project_Output/warped_straight_lines.png "Warp Example"
+[image3]: ./Project_Output/binary-example_1.png "Binary Example 1"
+[image4]: ./Project_Output/transform_a.png "Warp Example 1"
 [image5]: ./Project_Output/fit-lane-lines.png "Fit Visual"
 [image6]: ./Project_Output/example_output.png "Output"
 [image7]: ./Project_Output/no_points_found.png "no Points Found"
+[image8]: ./Project_Output/binary-example_2.png "Binary Example 2"
+[image9]: ./Project_Output/transform_b.png "Warp Example 2"
+
+
 
 [video1]: ./Project_Output/project_video.mp4 "Video"
 
@@ -54,7 +58,7 @@ No "Chessboard Corners" where found on the following images:
 
 The code for this step is contained in the IPython notebook ["Image_Processing.ipynb"](./Image_Processing.ipynb).  
 
-To display a distortion corrected test image the process is simple. The method `cv2.undistort()` is applied to the test images provided using the camera matrix and distortion coefficients obtained for the previous rubric point. It is assumed that the same camera was used to take the pictures for both points 
+To display a distortion corrected test image the process is simple. The method `cv2.undistort()` is applied to the test images provided using the camera matrix and distortion coefficients obtained for the previous rubric point. It is assumed that the same camera was used to take the pictures for both points. 
 
 This resulted in the following image transformation:
 
@@ -62,71 +66,58 @@ This resulted in the following image transformation:
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-The code for this step is contained in the provided IPython notebook.
+The code for this step is also contained in the IPython notebook ["Image_Processing.ipynb"](./Image_Processing.ipynb).  
 
-I used a combinatino of color and gradient thresholds to generate my binary image. I first created an HLS version of the image, then a grayscaled version. Then I used a configurable sobel filter in the x directions, and made it a scaled absolute value sobel filter output. With those transformations performed, the thresholding operation can be done to generate a separate binary image from the sobel filter output and the S channel of the HLS image version.
+Three diferent version of the method `generate_binary_image` where tested.
 
-The thresholds used are configurable by passing in parameters, but default to some sane defaults for the test image used during development. The two generated binary images are then combined by simply using a logical OR operation on each. That is to say, if a pixel has a value in either of the generated binary images, it will be added to the combined binary image. This combined binary is then returned.
+the first two methods use a  combination of color and gradient thresholds to generate the binary image. such thresholds are applied to the image on the HLS color space. both methods apply a sobel filter in the `x` direction for the `L` and `S` channels, then a threshold is applied to the scaled absolute value of the filter's result. A threshold to the `S` channel is also applied in both versions. the onli difference is the application of a threshold to the `L` channel for one of the versions.
 
-Here is an example of the output of my binary generation function on a test image:
+On the third  and final version, simple color thresholds are used to generate the binary image. Such thresholding is performed on the `YCrCb` and the `LAB` color spaces. For the yellow lines a threshold is applied to the `Cr`and `Cb` channels. for the white lines the `LAB` color space is used, and a thresohold is applied to all the channels. 
+
+unfortunately no version of the method is able to work with other than the [project_video](./project_video.mp4). Therefore, the decission of using the third version of the method was made based on the time of processing. this method is almost two time faster than the other, and since on a real life scenario there will be live video being processed, the cycle time is also important.
+
+Here is an example of the output of the binary generation function on a test image:
 
 ![alt text][image3]
+![alt text][image8]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()` The `warper()` function takes as input an image (`image`). I chose the hardcode the source and destination points for the perspective transform in the following manner:
+The code for this step is also contained in the IPython notebook ["Image_Processing.ipynb"](./Image_Processing.ipynb).  
 
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
+For the perspective transform two versions where implemented, both versions implement a harcoded perspective transform.
 
-This resulted in the following source and destination points:
-
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
-
-I verified that my perspective transform was working as expected by performing the perspective transform on a straight-line image and verifying that the lines appear parallel in the perspective transform. Here is an example output to demonstrate that:
+The first version called `warper()` makes a transformations where the bottom part of the image stays unchanged, and the top part is then streched in order to obtain a Bird’s Eye View. This transfromation may be the more obvious, and therefore was the first approach, but as the top part is streched on space, the information remains the same, and can lead to an unsharp line on this part of the images.
 
 ![alt text][image4]
 
+the second approach was obtain from the web page [Bird's Eye View Transformation](https://nikolasent.github.io/opencv/2017/05/07/Bird's-Eye-View-Transformation.html). This approach shrinks the bottom of the image while keeping the top row unchanged. Such method preserves all available pixels from the raw image on the top where there is a lower relative resolution, it also allows us to track adjecent lines if needed.
+
+![alt text][image9]
+
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-The code for lane polynomial fitting is contained in the provided IPython notebook.
+The code for this step is also contained in the IPython notebook ["Image_Processing.ipynb"](./Image_Processing.ipynb).  
 
-I implemented both a sliding window approach as well as a local search if expected lane lines are already known. Both of these approaches require a warped (top-down view) and binary image. 
+Two different methods where implemented to satisfiy this point. 
 
-The sliding window approach converts the bottom portion of the image into a histogram in order to detect sane starting points for the lanes. After starting points are decided, the method splits the input image into a series of windows ascending from these starting points within which the positive pixels are collected and a new center is determined before moving to the next window. This ensures that we do a semi-local search from window to window, as we move up the image, never straying too far from the known previous good lane line pixels. When we reach the top, the pixels gathered in each window can be returned as a polyfit with degree 2. As we kept separate windows for each lane (left and right), we can return a polynomial in the form of a polyfit for each of the lanes.
+The first method is used when no previous line is available. It uses a sliding window approach. The method first calculates an histogram of the bottom half of the iamge, given that at the bottom of the image, there is no useful information at the borders f the images  due to the warper method used,the histogram is also limited to the center of the image(`[569:711]`). from the histogram posible starting points for the left and right line are extracted and the images is then scanned with a sliding window. This ensures that  a semi-local search from window to window is performed, never straying too far from the known previous good lane line pixels. When the top of the images is reached, the pixels gathered in each window are returned as a polyfit with degree 2.
 
-The local search will accept a left and right polynomial in the form of a numpy polyfit, as well as the input image. This method expects the lanes to be nearby the provided lane polynomials, and so can be used in situations where we can assume each image varies only slightly from the last. This is a reasonable assumption with self-driving vehicles, since we are process forward facing images at a high enough framerate that the lanes should not be too varied.
+The second method is used when the probable line positions are known. this method takes as an input the left and right polynomials as a `numpy polyfit`. a `Region of Interest`is generated with the given polynomials, and a new polynomial is generated with the pixels found on such Regions, if no polynomial is found, then the first method called.
 
-The output from this part of the pipeline is demonstrated below. The thin yellow lines are the polynomial fits graphed stacked above the left (red) and blue (right) pixel points which were used to fit them. The green rectangles are the windows which were used to discover the lanes as we ascend from the bottom to the top of the image.
+The output from this part of the pipeline is shown below.
 
 ![alt text][image5]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-The code for radius of curvature calculation is contained in the provided IPython notebook.
+The code for this step is also contained in the IPython notebook ["Image_Processing.ipynb"](./Image_Processing.ipynb).  
 
-I first set out the conversion from pixel units to the physical world. Then I defined a function which calculates the radius of curvature for a second degree polynomial at a given value. This will be used later by passing in the polynomials for the left and right lane lines and the bottom of the image (max y value) in order to calculate the radius of curvature at the point closest to the vehicle.
+First,  the scale factor from pixel units to the physical world is define, Then the method `radius_of_curvature` calculates the radius of curvature for a second degree polynomial at a given Point. since there are two polynomials (left and right lane lines), the radius of curvature is calculated for both of them at the point closest to the vehicle, and at a later point the smallest fo it its chosen as the actual radius.
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-The code for drawing the detected lane back onto the original image is contained in the provided IPython notebook.
-
-Here's what the lane looks like when it is drawn back onto the original image.
+The code for this step is also contained in the IPython notebook ["Image_Processing.ipynb"](./Image_Processing.ipynb). 
 
 ![alt text][image6]
 
@@ -136,7 +127,7 @@ Here's what the lane looks like when it is drawn back onto the original image.
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_output.mp4)
+Here's the [link to the video result]( ./Project_Output/project_output_v3.mp4)
 
 ---
 
@@ -144,6 +135,10 @@ Here's a [link to my video result](./project_output.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-I ran into a few issues when I was using only the sliding window search method for detecting the lane markers. This technique wasn't robust in the face of some of the frames of the video that did not have good lane markers at all. To work around this issue, I used the local search method, only falling back to the sliding window method when necessary (a polynomial fit couldn't be found nearby the last frame's polynomial fit for each lane).
+The biggest problem faced was the change of light on the videos. the frames with high contrast make it hard to detect the white lines properly. For such reason the pipe line does not work on the extra videos provided. In contrast, the yellow lines are detected with less difficulty when there a high contrast exist.
 
-I would expect for this pipeline to produce unreliable results if the lane markings were more sporadic or if the camera mounting were moved to a different position on the vehicle. I also think a particular weakness of this pipeline would be it's lack of smoothing. If the lane detection fails on a few frames in a row, the output would probably not be very good, since it doesn't smooth at all over previous frames. 
+I believe that when working with vision sistems one of the biggest problems is the calibration of sensors to work on different light conditions.
+
+for the extra videos most of the time the pipe lines was able to detect at least one line, therefore a method to predict the position of the missing line, provided that the line found is a good aproximation to the one found on the previos frame, could be implemented to make the pipe line more robust.
+
+Also I do not check for the parallelism of the lines, a point I belive to be needed.

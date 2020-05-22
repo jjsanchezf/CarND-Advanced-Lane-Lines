@@ -92,8 +92,6 @@ def generate_binary_image_v2(image, sobel_thresholds=(30, 140), color_thresholds
     # Thresholding on the color channels
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= color_thresholds[0]) & (s_channel <= color_thresholds[1])] = 1
-    l_binary = np.zeros_like(l_channel)
-    l_binary[(l_channel >= 230) & (l_channel <= 255)] = 1
     
     combined = np.zeros_like(s_channel)
     combined[(s_binary == 1) | (sxbinary_s == 1)|(sxbinary_l==1)] = 1     
@@ -111,6 +109,7 @@ def generate_binary_image_v3(image, sobel_thresholds=(30, 140), color_thresholds
 
 
 
+
 def generate_binary_image(image, sobel_thresholds=(30, 140), color_thresholds=(150, 255)):
     return generate_binary_image_v3(image, sobel_thresholds=(30, 140), color_thresholds=(150, 255))
 
@@ -124,7 +123,7 @@ for fname in Test_images:
     result1=generate_binary_image_v1(example_undistorted_test_image)
     result2=generate_binary_image_v2(example_undistorted_test_image)
     result3=generate_binary_image_v3(example_undistorted_test_image)
-    
+    result=generate_binary_image(example_undistorted_test_image)
     if showimages:
         fig= plt.figure(figsize=(20,10))
         plt.subplot(141),plt.imshow(example_undistorted_test_image)
@@ -135,7 +134,7 @@ for fname in Test_images:
         plt.title('v2', fontsize=30)
         plt.subplot(144),plt.imshow(result3, cmap='gray')
         plt.title('v3', fontsize=30)
-        fig.suptitle(fname, fontsize=16)
+       # fig.suptitle(fname, fontsize=16)
 
     if saveimages:
         mpimg.imsave("Transformed_"+fname,result, cmap='gray')
@@ -170,8 +169,8 @@ def warper(image):
 def warper_V2(image):
     image_size = image.shape[:2]
     img_size = (1280, 223)  
-    src = np.float32([[0, 673],     [1207, 673],     [0, 450], [1280, 450]])
-    dst = np.float32([[569, 223], [711, 223], [0, 0], [1280, 0]])
+    src = np.float32([[0, 673],   [1207, 673],[0, 450], [1280, 450]])
+    dst = np.float32([[569, 223], [711, 223], [0, 0],   [1280, 0]])
     M = cv2.getPerspectiveTransform(src, dst)
     M = cv2.getPerspectiveTransform(src, dst) # The transformation matrix
     Minv = cv2.getPerspectiveTransform(dst, src) # Inverse transformation
@@ -200,7 +199,8 @@ for fname in Test_images:
         plt.title('After', fontsize=30)
         fig.suptitle(fname, fontsize=16)
 
-    mpimg.imsave("Warped_"+fname,warped)
+    if saveimages:
+       mpimg.imsave("Warped_"+fname,warped)
 
 # %% [markdown]
 # ## 2.4 Identify lane-line pixels and fit a polynomial
@@ -221,8 +221,8 @@ for fname in Test_images:
         plt.subplot(122),plt.imshow(warped, cmap='gray')
         plt.title('After', fontsize=30)
         fig.suptitle(fname, fontsize=16)
-
-    mpimg.imsave("Transformed_Warped_"+fname,warped, cmap='gray')
+    if saveimages:
+        mpimg.imsave("Transformed_Warped_"+fname,warped, cmap='gray')
 
 
 # %%
@@ -240,7 +240,7 @@ def sliding_window_lane_search(image, left_fit, right_fit):
     right_x_base = np.argmax(histogram[midpoint:]) + midpoint+569
 
     num_windows = 9
-    window_height = np.int(warped.shape[0]/num_windows)
+    window_height = np.int(image.shape[0]/num_windows)
 
     # x/y positions of all nonzeros in the image
     nonzero = image.nonzero()
@@ -359,18 +359,30 @@ def preexisting_lane_search(image, left_fit, right_fit):
 
 
 # %%
-left_fit, right_fit, out_image, _, _, _, _ = sliding_window_lane_search(warped, None, None)
+for fname in Test_images:
+    example_distorted_test_image = cv2.imread(fname)
+    example_distorted_test_image_RGB = cv2.cvtColor(example_distorted_test_image, cv2.COLOR_BGR2RGB)
+    example_undistorted_test_image = cv2.undistort(example_distorted_test_image_RGB,mtx,dist)
+    binary = generate_binary_image(example_undistorted_test_image)
+    warped, inverse_warp_matrix =warper_V2(binary)
+    left_fit, right_fit, out_image, _, _, _, _ = sliding_window_lane_search(warped, None, None)
 
-# Generate x and y values for plotting
-ploty = np.linspace(0, out_image.shape[0]-1, out_image.shape[0] )
-left_fit_x = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-right_fit_x = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-plt.figure(figsize=(20, 20))
-plt.imshow(out_image)
-plt.plot(left_fit_x, ploty, color='yellow')
-plt.plot(right_fit_x, ploty, color='yellow')
-plt.xlim(0, 1280)
-plt.ylim(223, 0)
+    if showimages:
+        # Generate x and y values for plotting
+        ploty = np.linspace(100, out_image.shape[0]-1, out_image.shape[0] )
+        left_fit_x = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        right_fit_x = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+        plt.figure(figsize=(20, 20))
+        plt.imshow(out_image)
+        plt.plot(left_fit_x, ploty, color='yellow')
+        plt.plot(right_fit_x, ploty, color='yellow')
+        plt.xlim(0, 1280)
+        plt.ylim(223, 0)
+        fig=plt.figure(figsize=(20,10))
+       
+
+#left_fit, right_fit, out_image, _, _, _, _ = sliding_window_lane_search(warped, None, None)
+
 
 # %% [markdown]
 # ## 5. Computing Radius of Curvature
@@ -381,17 +393,12 @@ meters_per_pixel_x = 3.7/100 # Lane width (12 ft in m) is ~100 px on image
 
 def radius_of_curvature(y_value, right_x, left_x, right_y, left_y):
     # Fit new polynomials to x,y in world space
-    try:
-        left_fit_cr = np.polyfit(left_y, left_x, 2)
-        right_fit_cr = np.polyfit(right_y, right_x, 2)
-        al, bl, cl = left_fit_cr
-        ar, br, cr = left_fit_cr
-        left = (1 + (((2 * al * y_value * meters_per_pixel_y) + bl) ** 2) ** (1.5))/ np.absolute(2 * al)
-        right = (1 + (((2 * ar * y_value * meters_per_pixel_y) + br) ** 2) ** (1.5))/ np.absolute(2 * ar)
-    except TypeError:
-        left = 0
-        right = 0
-    
+    left_fit_cr = np.polyfit(left_y, left_x, 2)
+    right_fit_cr = np.polyfit(right_y, right_x, 2)
+    al, bl, cl = left_fit_cr
+    ar, br, cr = left_fit_cr
+    left = (1 + (((2 * al * y_value * meters_per_pixel_y) + bl) ** 2) ** (1.5))/ np.absolute(2 * al)
+    right = (1 + (((2 * ar * y_value * meters_per_pixel_y) + br) ** 2) ** (1.5))/ np.absolute(2 * ar)
     return left, right
 
 def distance_from_center(left_fit, right_fit, y_value, x_size):
@@ -413,7 +420,7 @@ def draw_lane_lines(warped_image, left_fit, right_fit, inverse_warp_matrix, dest
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
     
     
-    ploty = np.linspace(0, warp_zero.shape[0]-1, warp_zero.shape[0] )
+    ploty = np.linspace(100, warp_zero.shape[0]-1, warp_zero.shape[0] )
     left_fit_x = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
     right_fit_x = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
     
@@ -468,42 +475,27 @@ def draw_center_offset(left_fit, right_fit, image):
 
 
 # %%
-example_distorted_test_image = cv2.imread('test_images/test1.jpg')
-example_undistorted_test_image = cv2.undistort(
-    example_distorted_test_image,
-    mtx,
-    dist
-)
-example_undistorted_test_image = cv2.cvtColor(example_undistorted_test_image, cv2.COLOR_BGR2RGB)
+for fname in Test_images:
+    example_distorted_test_image = cv2.imread(fname)
+    example_distorted_test_image_RGB = cv2.cvtColor(example_distorted_test_image, cv2.COLOR_BGR2RGB)
+    example_undistorted_test_image = cv2.undistort(example_distorted_test_image_RGB,mtx,dist)
+    binary = generate_binary_image(example_undistorted_test_image)
+    warped, inverse_warp_matrix =warper_V2(binary)
+    left_fit, right_fit, out_image, _, _, _, _ = sliding_window_lane_search(warped, None, None)
+    new_image = draw_lane_lines(warped, left_fit, right_fit, inverse_warp_matrix, example_undistorted_test_image)
+    last_draw = datetime.datetime.now()
+    y_value = new_image.shape[0]
+    radius_left, radius_right = radius_of_curvature(y_value, right_x, left_x, right_y, left_y)
+    min_radius = min([radius_left, radius_right])
+    last_draw = draw_radius_of_curvature(new_image, min_radius, last_draw)
+    draw_center_offset(left_fit, right_fit, new_image)
 
-binary = generate_binary_image(example_undistorted_test_image)
-
-warped, inverse_warp_matrix = warper_V2(binary)
-
-left_fit, right_fit, _, right_x, right_y, left_x, left_y = sliding_window_lane_search(warped, None, None)
-
-new_image = draw_lane_lines(warped, left_fit, right_fit, inverse_warp_matrix, example_undistorted_test_image)
-
-last_draw = datetime.datetime.now()
-y_value = new_image.shape[0]
-radius_left, radius_right = radius_of_curvature(y_value, right_x, left_x, right_y, left_y)
-
-min_radius = min([radius_left, radius_right])
-
-last_draw = draw_radius_of_curvature(new_image, min_radius, last_draw)
-draw_center_offset(left_fit, right_fit, new_image)
-
-binary2=cv2.cvtColor(binary*255, cv2.COLOR_GRAY2RGB)
-fig=plt.figure(figsize=(20,10))
-plt.subplot(141),plt.imshow(example_undistorted_test_image)
-plt.title('Before', fontsize=30)
-plt.subplot(142),plt.imshow(binary2)
-plt.title('binary', fontsize=30)
-plt.subplot(143),plt.imshow(warped )
-plt.title('warped', fontsize=30)
-plt.subplot(144),plt.imshow(new_image)
-plt.title('draw_lane_lines', fontsize=30)
-fig.suptitle(fname, fontsize=16)
+    if showimages:
+        fig=plt.figure(figsize=(20,10))
+        plt.subplot(121),plt.imshow(example_undistorted_test_image)
+        plt.title('Before', fontsize=30)
+        plt.subplot(122),plt.imshow(new_image)
+        plt.title('draw_lane_lines', fontsize=30)
 
 # %% [markdown]
 # # III. Pipelining for Video
@@ -542,7 +534,7 @@ def lane_detector_pipeline(image, left, right):
 
     last_draw = draw_radius_of_curvature(drawn, sum(last_5_radius) / len(last_5_radius), last_draw)
     draw_center_offset(left_fit, right_fit, drawn)
-
+    color_binary = binary * 255
     return drawn, left_fit, right_fit
 
 
@@ -562,8 +554,12 @@ class ImageProcessor:
 
 processor = ImageProcessor()
     
-output = 'Project_Output/challenge_output_v3.mp4'
-clip1 = VideoFileClip("challenge_video.mp4")#.subclip(0,10)
+output = 'Project_Output/project_output_v3_test_delta.mp4'
+clip1 = VideoFileClip("project_video.mp4")#.subclip(0,10)
 project_clip = clip1.fl_image(processor.process_image) #NOTE: this function expects color images!!
 get_ipython().run_line_magic('time', 'project_clip.write_videofile(output, audio=False)')
+
+
+# %%
+
 
