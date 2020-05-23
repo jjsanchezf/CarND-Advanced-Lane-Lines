@@ -378,18 +378,14 @@ for fname in Test_images:
         plt.plot(right_fit_x, ploty, color='yellow')
         plt.xlim(0, 1280)
         plt.ylim(223, 0)
-        fig=plt.figure(figsize=(20,10))
-       
-
-#left_fit, right_fit, out_image, _, _, _, _ = sliding_window_lane_search(warped, None, None)
-
+        fig=plt.figure(figsize=(20,10))   
 
 # %% [markdown]
 # ## 5. Computing Radius of Curvature
 
 # %%
-meters_per_pixel_y = 3.048/30 #Dashed line length (10 ft in m) is ~30 px on image
-meters_per_pixel_x = 3.7/100 # Lane width (12 ft in m) is ~100 px on image 
+meters_per_pixel_y = 30/720 
+meters_per_pixel_x = 3.7/700 
 
 def radius_of_curvature(y_value, right_x, left_x, right_y, left_y):
     # Fit new polynomials to x,y in world space
@@ -402,8 +398,8 @@ def radius_of_curvature(y_value, right_x, left_x, right_y, left_y):
     return left, right
 
 def distance_from_center(left_fit, right_fit, y_value, x_size):
-    left_fit_x = left_fit[0]*y_value**2 + left_fit[1]*y_value + left_fit[2]
-    right_fit_x = right_fit[0]*y_value**2 + right_fit[1]*y_value + right_fit[2]
+    left_fit_x = left_fit[0]*y_value* meters_per_pixel_y**2 + left_fit[1]*y_value*meters_per_pixel_y + left_fit[2]
+    right_fit_x = right_fit[0]*y_value* meters_per_pixel_y**2 + right_fit[1]*y_value*meters_per_pixel_y + right_fit[2]
     
     center_of_car = x_size / 2
     center_of_lane = (left_fit_x + right_fit_x) / 2
@@ -481,7 +477,7 @@ for fname in Test_images:
     example_undistorted_test_image = cv2.undistort(example_distorted_test_image_RGB,mtx,dist)
     binary = generate_binary_image(example_undistorted_test_image)
     warped, inverse_warp_matrix =warper_V2(binary)
-    left_fit, right_fit, out_image, _, _, _, _ = sliding_window_lane_search(warped, None, None)
+    left_fit, right_fit, out, right_x, right_y, left_x, left_y = sliding_window_lane_search(warped, None, None)
     new_image = draw_lane_lines(warped, left_fit, right_fit, inverse_warp_matrix, example_undistorted_test_image)
     last_draw = datetime.datetime.now()
     y_value = new_image.shape[0]
@@ -496,6 +492,9 @@ for fname in Test_images:
         plt.title('Before', fontsize=30)
         plt.subplot(122),plt.imshow(new_image)
         plt.title('draw_lane_lines', fontsize=30)
+
+
+        
 
 # %% [markdown]
 # # III. Pipelining for Video
@@ -554,12 +553,8 @@ class ImageProcessor:
 
 processor = ImageProcessor()
     
-output = 'Project_Output/project_output_v3_test_delta.mp4'
+output = 'Project_Output/project_output_v3.mp4'
 clip1 = VideoFileClip("project_video.mp4")#.subclip(0,10)
 project_clip = clip1.fl_image(processor.process_image) #NOTE: this function expects color images!!
 get_ipython().run_line_magic('time', 'project_clip.write_videofile(output, audio=False)')
-
-
-# %%
-
 
